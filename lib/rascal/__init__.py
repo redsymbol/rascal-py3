@@ -1,53 +1,68 @@
 import curses
 import random
 
-class Player:
-    def __init__(self, name):
-        self.name = name
-        self.x = 5
-        self.y = 5
-
-
-class Monster:
+class Actor:
     symbol = '?'
     name = '?'
+    hitpoints = 0
+    attack = 0
     def __init__(self):
         self.x = 0
         self.y = 0
 
+    def draw(self, window):
+        window.move(self.x, self.y)
+        window.delch()
+        window.insch(self.symbol)
+        
+
+class Player(Actor):
+    symbol = '@'
+    hitpoints = 10
+    attack = 1
+    def __init__(self, name):
+        self.name = name
+        super().__init__()
+
+
+class Monster(Actor):
+    def is_alive(self):
+        return self.hitpoints > 0
+
 class Rat(Monster):
     symbol = 'r'
     name = 'rat'
+    hitpoints = 1
+    attack = 1
 
 def hd_redraw_original_player_pos(handle):
-    def newhandle(world):
+    def newhandle(world, *a, **kw):
         world.add_redraw_terrain((world.player.x, world.player.y))
-        return handle(world)
+        return handle(world, *a, **kw)
     return newhandle
 
 @hd_redraw_original_player_pos
+def handle_move_to(world, xx, yy):
+    if world.has_monster_at(xx, yy):
+        world.attack_monster_at(xx, yy)
+    elif world.occupiable(xx, yy):
+        world.player.x = xx
+        world.player.y = yy
+
 def handle_move_down(world):
-    new_x = world.player.x + 1
-    if world.occupiable(new_x, world.player.y):
-        world.player.x = new_x
+    return handle_move_to(world, world.player.x + 1, world.player.y)
 
 @hd_redraw_original_player_pos
 def handle_move_up(world):
-    new_x = world.player.x - 1
-    if world.occupiable(new_x, world.player.y):
-        world.player.x = new_x
+    return handle_move_to(world, world.player.x - 1, world.player.y)
 
 @hd_redraw_original_player_pos
 def handle_move_left(world):
-    new_y = world.player.y - 1
-    if world.occupiable(world.player.x, new_y):
-        world.player.y = new_y
+    return handle_move_to(world, world.player.x, world.player.y - 1)
 
 @hd_redraw_original_player_pos
 def handle_move_right(world):
-    new_y = world.player.y + 1
-    if world.occupiable(world.player.x, new_y):
-        world.player.y = new_y
+    return handle_move_to(world, world.player.x, world.player.y + 1)
 
 def handle_quit(world):
     return True
@@ -96,7 +111,11 @@ class World:
         self.player = player
         self._redraw_points = set()
         self.monsters = [Rat(), Rat(), Rat()]
-        self.randomly_place_monsters(*self.monsters)
+        self.randomly_place_monsters(player, *self.monsters)
+
+    def monster_positions(self):
+        return {(monster.x, monster.y) : monster
+                for monster in self.monsters}
 
     def occupiable(self, x, y):
         if self.terrain[x][y] == '#':
@@ -127,6 +146,16 @@ class World:
         points = self._redraw_points
         self._redraw_points = set()
         return points
+    
+    def has_monster_at(self, xx, yy):
+        return (xx, yy) in self.monster_positions().keys()
+
+    def attack_monster_at(self, xx, yy):
+        monster = self.monster_positions()[(xx, yy)]
+        monster.hitpoints -= self.player.attack
+        if not monster.is_alive():
+            self.add_redraw_terrain((xx, yy))
+            self.monsters.remove(monster)
 
 class View:
     def __init__(self, player):
@@ -168,14 +197,10 @@ class View:
             self.window.move(xx, yy)
             self.window.delch()
             self.window.insch(self.world.terrain[xx][yy])
-        self.window.move(self.world.player.x, self.world.player.y)
-        self.window.delch()
-        self.window.insch('@')
         for monster in self.world.monsters:
-            self.window.move(monster.x, monster.y)
-            self.window.delch()
-            self.window.insch(monster.symbol)
-        self.window.move(self.world.player.x, self.world.player.y)
+            if monster.is_alive():
+                monster.draw(self.window)
+        self.world.player.draw(self.window)
         self.window.refresh()
     
     def handle_input(self, ch):
