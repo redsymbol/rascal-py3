@@ -13,11 +13,11 @@ To run:
 
 COMMANDS
 
-h - move left
-j - move down
-k - move up
-l - move right
-q - quit
+ * h - move left
+ * j - move down
+ * k - move up
+ * l - move right
+ * q - quit
 
 Move into a monster to attack it.
 
