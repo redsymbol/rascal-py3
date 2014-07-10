@@ -1,10 +1,23 @@
 import curses
+import random
 
 class Player:
     def __init__(self, name):
         self.name = name
         self.x = 5
         self.y = 5
+
+
+class Monster:
+    symbol = '?'
+    name = '?'
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+
+class Rat(Monster):
+    symbol = 'r'
+    name = 'rat'
 
 def hd_redraw_original_player_pos(handle):
     def newhandle(world):
@@ -15,25 +28,25 @@ def hd_redraw_original_player_pos(handle):
 @hd_redraw_original_player_pos
 def handle_move_down(world):
     new_x = world.player.x + 1
-    if world.terrain[new_x][world.player.y] == ' ':
+    if world.occupiable(new_x, world.player.y):
         world.player.x = new_x
 
 @hd_redraw_original_player_pos
 def handle_move_up(world):
     new_x = world.player.x - 1
-    if world.terrain[new_x][world.player.y] == ' ':
+    if world.occupiable(new_x, world.player.y):
         world.player.x = new_x
 
 @hd_redraw_original_player_pos
 def handle_move_left(world):
     new_y = world.player.y - 1
-    if world.terrain[world.player.x][new_y] == ' ':
+    if world.occupiable(world.player.x, new_y):
         world.player.y = new_y
 
 @hd_redraw_original_player_pos
 def handle_move_right(world):
     new_y = world.player.y + 1
-    if world.terrain[world.player.x][new_y] == ' ':
+    if world.occupiable(world.player.x, new_y):
         world.player.y = new_y
 
 def handle_quit(world):
@@ -82,6 +95,30 @@ class World:
         self.height = len(self.terrain)
         self.player = player
         self._redraw_points = set()
+        self.monsters = [Rat(), Rat(), Rat()]
+        self.randomly_place_monsters(*self.monsters)
+
+    def occupiable(self, x, y):
+        if self.terrain[x][y] == '#':
+            return False
+        if (x, y) in set((m.x, m.y) for m in self.monsters):
+            return False
+        return True
+
+    def randomly_place_monsters(self, *monsters):
+        actor_positions = set((self.player.x, self.player.y))
+        for monster in monsters:
+            while True:
+                xx = random.randrange(0, self.height)
+                yy = random.randrange(0, self.width)
+                if (xx, yy) in actor_positions:
+                    continue
+                if not self.occupiable(xx, yy):
+                    continue
+                monster.x = xx
+                monster.y = yy
+                actor_positions.add((xx, yy))
+                break
 
     def add_redraw_terrain(self, point):
         self._redraw_points.add(point)
@@ -134,6 +171,11 @@ class View:
         self.window.move(self.world.player.x, self.world.player.y)
         self.window.delch()
         self.window.insch('@')
+        for monster in self.world.monsters:
+            self.window.move(monster.x, monster.y)
+            self.window.delch()
+            self.window.insch(monster.symbol)
+        self.window.move(self.world.player.x, self.world.player.y)
         self.window.refresh()
     
     def handle_input(self, ch):
