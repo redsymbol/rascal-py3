@@ -17,6 +17,7 @@ COMMANDS
  * j - move down
  * k - move up
  * l - move right
+ * . - rest
  * q - quit
 
 Move into a monster to attack it.
