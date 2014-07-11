@@ -35,34 +35,17 @@ class Rat(Monster):
     hitpoints = 1
     attack = 1
 
-def hd_redraw_original_player_pos(handle):
-    def newhandle(world, *a, **kw):
-        world.add_redraw_terrain((world.player.x, world.player.y))
-        return handle(world, *a, **kw)
-    return newhandle
-
-@hd_redraw_original_player_pos
-def handle_move_to(world, xx, yy):
-    if world.has_monster_at(xx, yy):
-        world.attack_monster_at(xx, yy)
-    elif world.occupiable(xx, yy):
-        world.player.x = xx
-        world.player.y = yy
-
 def handle_move_down(world):
-    return handle_move_to(world, world.player.x + 1, world.player.y)
+    return world.move_player_to(1, 0)
 
-@hd_redraw_original_player_pos
 def handle_move_up(world):
-    return handle_move_to(world, world.player.x - 1, world.player.y)
+    return world.move_player_to(-1, 0)
 
-@hd_redraw_original_player_pos
 def handle_move_left(world):
-    return handle_move_to(world, world.player.x, world.player.y - 1)
+    return world.move_player_to(0, -1)
 
-@hd_redraw_original_player_pos
 def handle_move_right(world):
-    return handle_move_to(world, world.player.x, world.player.y + 1)
+    return world.move_player_to(0, 1)
 
 def handle_quit(world):
     return True
@@ -156,6 +139,16 @@ class World:
         if not monster.is_alive():
             self.add_redraw_terrain((xx, yy))
             self.monsters.remove(monster)
+
+    def move_player_to(self, diff_x, diff_y):
+        xx = self.player.x + diff_x
+        yy = self.player.y + diff_y
+        if self.has_monster_at(xx, yy):
+            self.attack_monster_at(xx, yy)
+        elif self.occupiable(xx, yy):
+            self.add_redraw_terrain((self.player.x, self.player.y))
+            self.player.x = xx
+            self.player.y = yy
 
 class View:
     def __init__(self, player):
