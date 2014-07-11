@@ -6,6 +6,17 @@ class Event:
     def format(self):
         return ''
 
+class PlayerDeadEvent(Event):
+    def format(self):
+        return 'You have died!'
+
+class PlayerSlainByEvent(PlayerDeadEvent):
+    def __init__(self, monster):
+        self.slayer = monster
+
+    def format(self):
+        return 'You have been slain by a {}!'.format(self.slayer.name)
+
 class MonsterAttackEvent(Event):
     def __init__(self, monster):
         self.monster = monster
@@ -39,6 +50,9 @@ class Actor:
         diff_y = abs(self.y - other.y)
         return (diff_x <= 1) and (diff_y <= 1)
 
+    def is_alive(self):
+        return self.hitpoints > 0
+
 class Player(Actor):
     symbol = '@'
     hitpoints = 10
@@ -47,10 +61,8 @@ class Player(Actor):
         self.name = name
         super().__init__()
 
-
 class Monster(Actor):
-    def is_alive(self):
-        return self.hitpoints > 0
+    pass
 
 class Rat(Monster):
     symbol = 'r'
@@ -204,8 +216,10 @@ class World:
         for monster in self.monsters:
             if monster.adjacent_to(self.player):
                 # attack
-                self.player.hitpoints -= monster.attack
                 self.events.put_nowait(MonsterAttackEvent(monster))
+                self.player.hitpoints -= monster.attack
+                if not self.player.is_alive():
+                    self.events.put_nowait(PlayerSlainByEvent(monster))
             else:
                 # move
                 dx = self.player.x - monster.x
@@ -223,6 +237,7 @@ class View:
         self.world = World(MAPPING, player)
         self.stats_line = self.world.height
         self.message_line = self.world.height + 1
+        self.last_message = 'Bye!'
 
     def run_forever(self):
         try:
@@ -234,7 +249,7 @@ class View:
             curses.endwin()
             raise
         curses.endwin()
-        print('Bye!')
+        print(self.last_message)
 
     def _run_forever(self):
         self.init_paint()
@@ -246,6 +261,8 @@ class View:
                 break
             self.world.run_monster_actions()
             self.paint()
+            if not self.world.player.is_alive():
+                return
             self.inc_message_display_count()
             if self.message_display_done():
                 self.message('')
@@ -277,12 +294,15 @@ class View:
         status_msg = 'HP {}'.format(self.world.player.hitpoints)
         status_msg = status_msg[:self.world.width]
         self.window.insstr(status_msg)
-        # message
-        try:
-            event = self.world.events.get_nowait()
+        # messages
+        while True:
+            try:
+                event = self.world.events.get_nowait()
+            except queue.Empty:
+                break
+            if isinstance(event, PlayerDeadEvent):
+                self.last_message = event.format()
             self.message(event.format())
-        except queue.Empty:
-            pass
         # player
         self.world.player.draw(self.window)
         self.window.refresh()
@@ -307,7 +327,6 @@ class View:
 
     def is_stop(self, ch):
         return ch == 'q'
-
 
     def reset_message_display_count(self):
         self._message_display_count = 0
