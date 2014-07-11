@@ -1,5 +1,17 @@
 import curses
 import random
+import queue
+
+class Event:
+    def format(self):
+        return ''
+
+class SlainMonsterEvent(Event):
+    def __init__(self, monster):
+        self.monster = monster
+
+    def format(self):
+        return 'You have slain the {}!'.format(self.monster.name)
 
 class Actor:
     symbol = '?'
@@ -95,6 +107,7 @@ class World:
         self._redraw_points = set()
         self.monsters = [Rat(), Rat(), Rat()]
         self.randomly_place_monsters(player, *self.monsters)
+        self.events = queue.Queue()
 
     def monster_positions(self):
         return {(monster.x, monster.y) : monster
@@ -139,6 +152,7 @@ class World:
         if not monster.is_alive():
             self.add_redraw_terrain((xx, yy))
             self.monsters.remove(monster)
+            self.events.put_nowait(SlainMonsterEvent(monster))
 
     def move_player_to(self, diff_x, diff_y):
         xx = self.player.x + diff_x
@@ -153,6 +167,8 @@ class World:
 class View:
     def __init__(self, player):
         self.world = World(MAPPING, player)
+        self.stats_line = self.world.height
+        self.message_line = self.world.height + 1
 
     def run_forever(self):
         try:
@@ -168,12 +184,16 @@ class View:
 
     def _run_forever(self):
         self.init_paint()
+        self.message('Kill all monsters!')
         while True:
             ch = self.window.getkey()
             stop = self.handle_input(ch)
             if stop:
                 break
             self.paint()
+            self.inc_message_display_count()
+            if self.message_display_done():
+                self.message('')
 
     def init_paint(self):
         self.window.clear()
@@ -186,15 +206,41 @@ class View:
         self.window.refresh()
 
     def paint(self):
+        # draw terrain
         for xx, yy in self.world.get_and_clear_redraw_points():
             self.window.move(xx, yy)
             self.window.delch()
             self.window.insch(self.world.terrain[xx][yy])
+        # monsters
         for monster in self.world.monsters:
-            if monster.is_alive():
-                monster.draw(self.window)
+            assert monster.is_alive(), (monster, self.world.monsters)
+            monster.draw(self.window)
+        # stats line
+        self.window.move(self.stats_line, 0)
+        self.window.deleteln()
+        self.window.insertln()
+        status_msg = 'HP {}'.format(self.world.player.hitpoints)
+        status_msg = status_msg[:self.world.width]
+        self.window.insstr(status_msg)
+        # message
+        try:
+            event = self.world.events.get_nowait()
+            self.message(event.format())
+        except queue.Empty:
+            pass
+        # player
         self.world.player.draw(self.window)
         self.window.refresh()
+
+    def message(self, content):
+        self.reset_message_display_count()
+        xx, yy = self.window.getyx()
+        content = content[:self.world.width]
+        self.window.move(self.message_line, 0)
+        self.window.deleteln()
+        self.window.insertln()
+        self.window.insstr(content)
+        self.window.move(xx, yy)
     
     def handle_input(self, ch):
         retval = None
@@ -206,7 +252,17 @@ class View:
 
     def is_stop(self, ch):
         return ch == 'q'
-        
+
+
+    def reset_message_display_count(self):
+        self._message_display_count = 0
+
+    def inc_message_display_count(self):
+        self._message_display_count += 1
+
+    def message_display_done(self):
+        return self._message_display_count > 5
+    
 def main(args):
     player = Player('Aaron')
     View(player).run_forever()
