@@ -47,7 +47,7 @@ class World:
             Goblin(),
             Goblin(),
             ]
-        self.randomly_place_monsters(player, *self.monsters)
+        self.randomly_place_actors(player, *self.monsters)
         self.events = queue.Queue()
 
     def monster_positions(self):
@@ -61,7 +61,7 @@ class World:
             return False
         return True
 
-    def randomly_place_monsters(self, *monsters):
+    def randomly_place_actors(self, *monsters):
         actor_positions = set((self.player.x, self.player.y))
         for monster in monsters:
             while True:
