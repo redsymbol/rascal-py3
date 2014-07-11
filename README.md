@@ -7,7 +7,7 @@ deeply.
 This is the Python 3 version.
 
 To play:
- - be using a modern Unix-like system (Linux, OSX, *BSD, etc.) (*)
+ - be using a modern Unix-like system (Linux, OSX, a flavor of BSD, etc.) (*)
  - get the source checkout
  - execute "bin/rascal"
 
