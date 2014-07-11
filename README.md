@@ -6,7 +6,7 @@ deeply.
 
 This is the Python 3 version.
 
-To run:
+To play:
  - get the source checkout
  - execute "bin/rascal". It's a bash script that should be 
    able to find and load the correct libraries
