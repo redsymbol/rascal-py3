@@ -35,6 +35,9 @@ class View:
             self.paint()
             if not self.world.player.is_alive():
                 return
+            if len(self.world.monsters) == 0:
+                self.last_message = 'You have killed all the monsters. You win!'
+                return
             self.inc_message_display_count()
             if self.message_display_done():
                 self.message('')
