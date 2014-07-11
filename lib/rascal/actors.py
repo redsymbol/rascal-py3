@@ -1,8 +1,11 @@
+import math
+
 class Actor:
     symbol = '?'
     name = '?'
     hitpoints = 0
     attack = 0
+    
     def __init__(self):
         self.x = 0
         self.y = 0
@@ -19,6 +22,10 @@ class Actor:
 
     def is_alive(self):
         return self.hitpoints > 0
+
+    def close_to(self, other: 'Actor'):
+        distance = math.sqrt(abs(self.x - other.x)**2 + abs(self.y - other.y)**2)
+        return distance < 20.0
 
 class Player(Actor):
     symbol = '@'

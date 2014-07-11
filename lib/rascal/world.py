@@ -117,7 +117,7 @@ class World:
                 self.player.hitpoints -= monster.attack
                 if not self.player.is_alive():
                     self.events.put_nowait(PlayerSlainByEvent(monster))
-            else:
+            elif monster.close_to(self.player):
                 # move
                 dx = self.player.x - monster.x
                 dy = self.player.y - monster.y
