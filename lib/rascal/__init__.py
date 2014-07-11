@@ -58,6 +58,18 @@ class Rat(Monster):
     hitpoints = 1
     attack = 1
 
+class GiantRat(Monster):
+    symbol = 'R'
+    name = 'giant rat'
+    hitpoints = 2
+    attack = 1
+
+class Goblin(Monster):
+    symbol = 'g'
+    name = 'goblin'
+    hitpoints = 1
+    attack = 2
+
 def handle_move_down(world):
     return world.move_player_to(1, 0)
 
@@ -116,7 +128,12 @@ class World:
         self.height = len(self.terrain)
         self.player = player
         self._redraw_points = set()
-        self.monsters = [Rat(), Rat(), Rat()]
+        self.monsters = [
+            Rat(),
+            Rat(),
+            GiantRat(),
+            Goblin(),
+            ]
         self.randomly_place_monsters(player, *self.monsters)
         self.events = queue.Queue()
 
