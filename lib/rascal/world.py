@@ -40,7 +40,11 @@ class World:
         self.monsters = [
             Rat(),
             Rat(),
+            Rat(),
             GiantRat(),
+            GiantRat(),
+            Goblin(),
+            Goblin(),
             Goblin(),
             ]
         self.randomly_place_monsters(player, *self.monsters)
