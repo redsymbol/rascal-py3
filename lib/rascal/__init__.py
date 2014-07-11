@@ -175,12 +175,32 @@ class World:
             self.player.x = xx
             self.player.y = yy
 
+    def move_monster_to(self, monster, diff_x, diff_y):
+        xx = monster.x + diff_x
+        yy = monster.y + diff_y
+        if self.occupiable(xx, yy):
+            self.add_redraw_terrain((monster.x, monster.y))
+            monster.x = xx
+            monster.y = yy
+            
     def run_monster_actions(self):
         for monster in self.monsters:
             if monster.adjacent_to(self.player):
+                # attack
                 self.player.hitpoints -= monster.attack
                 self.events.put_nowait(MonsterAttackEvent(monster))
-
+            else:
+                # move
+                dx = self.player.x - monster.x
+                dy = self.player.y - monster.y
+                if abs(dx) > abs(dy):
+                    dx = 1 if dx > 0 else -1
+                    dy = 0
+                else:
+                    dx = 0
+                    dy = 1 if dy > 0 else -1
+                self.move_monster_to(monster, dx, dy)
+                
 class View:
     def __init__(self, player):
         self.world = World(MAPPING, player)
