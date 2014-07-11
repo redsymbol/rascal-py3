@@ -23,7 +23,7 @@ class Actor:
     def is_alive(self):
         return self.hitpoints > 0
 
-    def close_to(self, other: 'Actor'):
+    def is_close_to(self, other: 'Actor'):
         distance = math.sqrt(abs(self.x - other.x)**2 + abs(self.y - other.y)**2)
         return distance < 20.0
 
