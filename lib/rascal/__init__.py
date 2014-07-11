@@ -6,6 +6,13 @@ class Event:
     def format(self):
         return ''
 
+class MonsterAttackEvent(Event):
+    def __init__(self, monster):
+        self.monster = monster
+
+    def format(self):
+        return 'The {} attacks you for {} damage!'.format(self.monster.name, self.monster.attack)
+
 class SlainMonsterEvent(Event):
     def __init__(self, monster):
         self.monster = monster
@@ -26,7 +33,11 @@ class Actor:
         window.move(self.x, self.y)
         window.delch()
         window.insch(self.symbol)
-        
+
+    def adjacent_to(self, other : 'Actor'):
+        diff_x = abs(self.x - other.x)
+        diff_y = abs(self.y - other.y)
+        return (diff_x <= 1) and (diff_y <= 1)
 
 class Player(Actor):
     symbol = '@'
@@ -164,6 +175,12 @@ class World:
             self.player.x = xx
             self.player.y = yy
 
+    def run_monster_actions(self):
+        for monster in self.monsters:
+            if monster.adjacent_to(self.player):
+                self.player.hitpoints -= monster.attack
+                self.events.put_nowait(MonsterAttackEvent(monster))
+
 class View:
     def __init__(self, player):
         self.world = World(MAPPING, player)
@@ -190,6 +207,7 @@ class View:
             stop = self.handle_input(ch)
             if stop:
                 break
+            self.world.run_monster_actions()
             self.paint()
             self.inc_message_display_count()
             if self.message_display_done():
